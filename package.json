@@ -1,0 +1,24 @@
+{
+    "name": "zenith.js",
+    "module": "index.ts",
+    "type": "module",
+    "scripts": {
+        "dev:worker": "bun ./api/worker.ts",
+        "dev:api": "bun ./api/index.ts",
+        "dev": "concurrently \"bun dev:api\" \"bun dev:worker\"",
+        "format:write": "bun prettier . --write"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "bun-types": "*",
+        "concurrently": "^9.1.2",
+        "prettier": "^3.4.2"
+    },
+    "peerDependencies": {
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {
+        "pino": "^9.6.0",
+        "elysia": "*"
+    }
+}
