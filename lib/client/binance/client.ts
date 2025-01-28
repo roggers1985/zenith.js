@@ -3,9 +3,9 @@ import type {
     BinanceClientMessage,
     BinanceClientMessageCallback,
     BinanceClientRequest,
-} from 'lib/client/binance-ws/types';
+} from 'lib/client/binance/types';
 
-export class BinanceWsClient {
+export class BinanceClient {
     private _websocket: WebSocket | null = null;
     private _logger: Logger;
 

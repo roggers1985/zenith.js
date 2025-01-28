@@ -14,7 +14,18 @@ export type SubscriptionTickerMessage = {
     time: number;
 };
 
-export type SubscriptionMessage = SubscriptionTickerMessage;
+export type SubscriptionBookTickerMessage = {
+    subscriptionId: string;
+    topic: 'book-ticker';
+    bidPrice: string;
+    bidQty: string;
+    askPrice: string;
+    askQty: string;
+};
+
+export type SubscriptionMessage =
+    | SubscriptionTickerMessage
+    | SubscriptionBookTickerMessage;
 
 export type SubscriptionProvider = Readonly<{
     /**

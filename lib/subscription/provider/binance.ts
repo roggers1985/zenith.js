@@ -1,4 +1,4 @@
-import { BinanceWsClient } from 'lib/client/binance-ws/client';
+import { BinanceClient } from 'lib/client/binance/client';
 import type {
     Subscription,
     SubscriptionMessage,
@@ -11,13 +11,13 @@ import type { Logger } from 'lib/common/types';
  * An adapter for using Binance as a data stream provider.
  */
 export class BinanceWsProvider implements SubscriptionProvider {
-    private readonly _client: BinanceWsClient;
+    private readonly _client: BinanceClient;
     private readonly _state = new SubscriptionProviderState();
     private readonly _logger: Logger;
 
     constructor(options?: { logger: Logger }) {
         this._logger = options?.logger ?? console;
-        this._client = new BinanceWsClient({ logger: this._logger });
+        this._client = new BinanceClient({ logger: this._logger });
     }
 
     get id() {
