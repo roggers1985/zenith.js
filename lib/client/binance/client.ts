@@ -1,9 +1,8 @@
 import type { Logger } from 'lib/common/types';
 import type {
     BinanceClientMessage,
-    BinanceClientMessageCallback,
-    BinanceClientRequest,
-} from 'lib/client/binance/types';
+    BinanceClientStreamMessage,
+} from './message';
 
 export class BinanceClient {
     private _websocket: WebSocket | null = null;
@@ -18,26 +17,22 @@ export class BinanceClient {
     }
 
     connect() {
-        this._logger.info('BinanceClient :: connecting');
+        this._logger.info('binance client connecting');
         this._websocket = new WebSocket('wss://stream.binance.com/stream');
     }
 
     disconnect() {
-        this._logger.info('BinanceClient :: disconnecting');
+        this._logger.info('binance client disconnecting');
         this._websocket?.close();
         this._websocket = null;
     }
 
-    onMessage(callback: BinanceClientMessageCallback) {
+    onMessage(callback: (message: BinanceClientMessage) => void) {
         if (!this._websocket) {
             return;
         }
         this._websocket.onmessage = (event: MessageEvent) => {
-            const message = JSON.parse(event.data) as BinanceClientMessage;
-            if ('result' in message) {
-                return;
-            }
-            callback(message);
+            callback(JSON.parse(event.data) as BinanceClientMessage);
         };
     }
 
@@ -49,12 +44,12 @@ export class BinanceClient {
     }
 
     subscribeToAllTickers() {
-        this._logger.info('BinanceClient :: subscribing to all tickers');
+        this._logger.info('binance client subscribing to all tickers');
         this._subscribe('1', ['!ticker@arr']);
     }
 
     unsubscribeFromAllTickers() {
-        this._logger.info('BinanceClient :: unsubscribing from all tickers');
+        this._logger.info('binance client unsubscribing from all tickers');
         this._unsubscribe('1', ['!ticker@arr']);
     }
 
@@ -74,7 +69,11 @@ export class BinanceClient {
         });
     }
 
-    private _send(data: BinanceClientRequest) {
+    private _send(data: {
+        id: string;
+        method: 'SUBSCRIBE' | 'UNSUBSCRIBE' | 'LIST_SUBSCRIPTIONS';
+        params?: string[];
+    }) {
         this._websocket?.send(JSON.stringify(data));
     }
 }

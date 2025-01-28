@@ -1,5 +1,5 @@
 import pino from 'pino';
-import { BinanceWsProvider } from 'lib/subscription/provider/binance-ws';
+import { BinanceProvider } from 'lib/subscription/provider/binance';
 import { SubscriptionManager } from '../lib/subscription/subscription-manager';
 
 const { LOG_LEVEL = 'info' } = process.env;
@@ -9,9 +9,9 @@ const logger = pino({
 });
 
 async function run() {
-    logger.info('starting background-worker');
+    logger.info('starting background worker');
     const manager = new SubscriptionManager({ logger });
-    manager.addProvider(new BinanceWsProvider({ logger }));
+    manager.addProvider(new BinanceProvider({ logger }));
     manager.subscribe({
         id: 'ticker_btcusdt',
         topic: 'ticker',

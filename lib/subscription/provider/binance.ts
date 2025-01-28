@@ -6,11 +6,12 @@ import type {
 } from '../subscription';
 import { SubscriptionProviderState } from '../subscription-provider-state';
 import type { Logger } from 'lib/common/types';
+import { isBinanceClientTickerArrMessage } from 'lib/client/binance/message';
 
 /**
  * An adapter for using Binance as a data stream provider.
  */
-export class BinanceWsProvider implements SubscriptionProvider {
+export class BinanceProvider implements SubscriptionProvider {
     private readonly _client: BinanceClient;
     private readonly _state = new SubscriptionProviderState();
     private readonly _logger: Logger;
@@ -40,10 +41,14 @@ export class BinanceWsProvider implements SubscriptionProvider {
      * @param onMessage A callback to process the subscription message.
      */
     connect(onMessage: (message: SubscriptionMessage) => void): void {
-        this._logger.info('BinanceProvider :: connecting');
+        this._logger.info('binance provider connecting');
         this._client.onDisconnect(this._state.clear);
         this._client.connect();
         this._client.onMessage((message) => {
+            // We currently only support "all ticker" subscriptins.
+            if (!isBinanceClientTickerArrMessage(message)) {
+                return;
+            }
             message.data
                 .filter(({ s }) => this._state.hasSubscriptionsForPair(s))
                 .map((ticker) => {
@@ -67,7 +72,7 @@ export class BinanceWsProvider implements SubscriptionProvider {
      * Disconnects from the binance client.
      */
     disconnect(): void {
-        this._logger.info('BinanceProvider :: disconnecting');
+        this._logger.info('binance provider disconnecting');
         this._client.disconnect();
     }
 
@@ -81,7 +86,7 @@ export class BinanceWsProvider implements SubscriptionProvider {
             return;
         }
         this._logger.info(
-            `BinanceProvider :: subscribing subscription with id ${subscription.id}`
+            `binance provider subscribing to subscription with id ${subscription.id}`
         );
         this._state.addSubscription(subscription);
         this._client.subscribeToAllTickers();
@@ -104,7 +109,7 @@ export class BinanceWsProvider implements SubscriptionProvider {
      */
     unsubscribe(subscriptionId: string): void {
         this._logger.info(
-            `BinanceProvider :: unsubscribing from subscription with id ${subscriptionId}`
+            `binance provider unsubscribing from subscription with id ${subscriptionId}`
         );
         this._state.removeSubscription(subscriptionId);
         if (this._state.hasSubscriptions) {
