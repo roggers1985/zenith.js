@@ -4,17 +4,16 @@ import type {
     SubscriptionMessage,
     SubscriptionProvider,
 } from '../subscription';
-import { SubscriptionProviderState } from '../subscription-provider-state';
+import { SubscriptionState } from '../subscription-state';
 import type { Logger } from 'lib/common/types';
 import { isBinanceClientTickerArrMessage } from 'lib/client/binance/message';
-import { sleep } from 'bun';
 
 /**
  * An adapter for using Binance as a data stream provider.
  */
 export class BinanceProvider implements SubscriptionProvider {
     private readonly _client: BinanceClient;
-    private readonly _state = new SubscriptionProviderState();
+    private readonly _state = new SubscriptionState();
     private readonly _logger: Logger;
 
     constructor(options?: { logger: Logger }) {
@@ -45,14 +44,17 @@ export class BinanceProvider implements SubscriptionProvider {
         onMessage: (message: SubscriptionMessage) => void
     ): Promise<void> {
         this._logger.info('binance provider connecting');
+
         this._client.onDisconnect(() => {
             this._state.clear();
         });
+
         this._client.onMessage((message) => {
             // We currently only support "all ticker" subscriptins.
             if (!isBinanceClientTickerArrMessage(message)) {
                 return;
             }
+
             message.data
                 .filter(({ s }) => this._state.hasSubscriptionsForPair(s))
                 .map((ticker) => {
@@ -79,6 +81,7 @@ export class BinanceProvider implements SubscriptionProvider {
      */
     disconnect(): void {
         this._logger.info('binance provider disconnecting');
+
         this._client.disconnect();
     }
 
@@ -91,6 +94,7 @@ export class BinanceProvider implements SubscriptionProvider {
         this._logger.info(
             `binance provider subscribing to subscription with id ${subscription.id}`
         );
+
         this._state.addSubscription(subscription);
     }
 
@@ -113,6 +117,7 @@ export class BinanceProvider implements SubscriptionProvider {
         this._logger.info(
             `binance provider unsubscribing from subscription with id ${subscriptionId}`
         );
+
         this._state.removeSubscription(subscriptionId);
     }
 }

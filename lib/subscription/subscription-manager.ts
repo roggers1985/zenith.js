@@ -47,14 +47,18 @@ export class SubscriptionManager {
 
         return new Promise((res) => {
             this.setStatus('online');
+
             const intervalId = setInterval(async () => {
                 if (options?.signal?.aborted) {
                     this.stop();
                 }
+
                 if (this._status === 'offline') {
                     res(null);
+
                     clearInterval(intervalId);
                 }
+
                 await this._process();
             }, this._interval);
         });
@@ -69,6 +73,7 @@ export class SubscriptionManager {
      */
     public stop() {
         this._logger.info('stopping subscription manager');
+
         this.setStatus('offline');
     }
 
@@ -110,7 +115,8 @@ export class SubscriptionManager {
      * Handles subscription, connectivity and price streams.
      */
     private async _process() {
-        this._handleConnects();
+        await this._handleConnects();
+        await this._handleSubscribes();
         // await this._handleSubscribes();
         // await this._handleConnects();
         // await this._handleUnsubscribes();
@@ -138,29 +144,43 @@ export class SubscriptionManager {
     }
 
     /**
-     * Disconnects from providers without active subscribers.
-     */
-    private async _handleDisconnects() {
-        for await (const [, provider] of this._providers) {
-            if (provider.subscriptionIds().size > 0) {
-                return;
-            }
-            await provider.disconnect();
-        }
-    }
-
-    /**
      * Subscribes to providers based on newly added subscriptions in the subscription manager.
      */
     private async _handleSubscribes() {
         for await (const [, subscription] of this._subscriptions) {
             const provider = this._providers.get(subscription.provider);
+
             assert(provider);
+
+            // If the provider is not yet connected, skip this round and wait for it to be connected first.
+            if (!provider.connected) {
+                return;
+            }
+
+            // The provider already has a corresponding subscription.
             if (provider.subscribedTo(subscription.id)) {
                 return;
             }
+
+            // The provider is not yet subscribed, so subscribe.
             await provider.subscribe(subscription);
         }
+    }
+
+    /**
+     * Disconnects from providers without active subscribers.
+     */
+    private async _handleDisconnects() {
+        // for await (const [, provider] of this._providers) {
+        //   for await (const [, subscription] of this._subscriptions) {
+        //   }
+        // }
+        // for await (const [, provider] of this._providers) {
+        //     if (provider.subscriptionIds().size > 0) {
+        //         return;
+        //     }
+        //     await provider.disconnect();
+        // }
     }
 
     /**
