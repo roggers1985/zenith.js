@@ -1,8 +1,6 @@
 import type { Logger } from 'lib/common/types';
-import type {
-    BinanceClientMessage,
-    BinanceClientStreamMessage,
-} from './message';
+import type { BinanceClientMessage } from './message';
+import { sleep } from 'bun';
 
 export class BinanceClient {
     private _websocket: WebSocket | null = null;
@@ -19,6 +17,13 @@ export class BinanceClient {
     connect() {
         this._logger.info('binance client connecting');
         this._websocket = new WebSocket('wss://stream.binance.com/stream');
+        return new Promise(async (res) => {
+            while (this._websocket?.readyState === WebSocket.CONNECTING) {
+                await sleep(50);
+            }
+            res(null);
+            this._logger.info('binance client connected');
+        });
     }
 
     disconnect() {
@@ -40,7 +45,18 @@ export class BinanceClient {
         if (!this._websocket) {
             return;
         }
-        this._websocket.onclose = callback;
+        this._websocket.onclose = () => {
+            callback();
+        };
+    }
+
+    onConnect(callback: () => void) {
+        if (!this._websocket) {
+            return;
+        }
+        this._websocket.onopen = () => {
+            callback();
+        };
     }
 
     subscribeToAllTickers() {

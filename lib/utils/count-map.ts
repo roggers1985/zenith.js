@@ -1,3 +1,5 @@
+import { assert } from './assert';
+
 export class CountMap {
     private readonly _map: Map<string, number> = new Map();
 
@@ -19,18 +21,27 @@ export class CountMap {
 
     increment(key: string) {
         const count = this._map.get(key) ?? 0;
+
         this._map.set(key, count + 1);
     }
 
     decrement(key: string) {
         const count = this._map.get(key);
+
         if (count === undefined) {
             return;
         }
+
         if (count < 1) {
             this._map.delete(key);
+
             return;
         }
-        this._map.set(key, count - 1);
+
+        const nextCount = count - 1;
+
+        assert(nextCount >= 0);
+
+        this._map.set(key, nextCount);
     }
 }

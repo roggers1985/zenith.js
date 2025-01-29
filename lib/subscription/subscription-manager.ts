@@ -36,7 +36,7 @@ export class SubscriptionManager {
         this._interval = options?.interval ?? 2_000;
         this._logger = options?.logger ?? { info: noop };
         this._subscriptions = options?.subscriptions ?? new Map();
-        this._waitTime = options?.waitTime ?? 2_000;
+        this._waitTime = options?.waitTime ?? 5_000;
     }
 
     /**
@@ -110,57 +110,57 @@ export class SubscriptionManager {
      * Handles subscription, connectivity and price streams.
      */
     private async _process() {
-        for (const fn of [
-            this._handleSubscribes,
-            this._handleConnects,
-            this._handleUnsubscribes,
-            this._handleDisconnects,
-        ]) {
-            await fn.apply(this);
-            await this._wait();
-        }
+        this._handleConnects();
+        // await this._handleSubscribes();
+        // await this._handleConnects();
+        // await this._handleUnsubscribes();
+        // await this._handleDisconnects();
+        await this._wait();
     }
 
     /**
      * Connects to providers that have active subscribers.
      */
     private async _handleConnects() {
-        this._subscriptions.forEach((subscription) => {
+        for await (const [, subscription] of this._subscriptions) {
             const provider = this._providers.get(subscription.provider);
+
             if (!provider) {
                 return;
             }
+
             if (provider.connected) {
                 return;
             }
-            provider.connect(this._onMessage);
-        });
+
+            await provider.connect(this._onMessage);
+        }
     }
 
     /**
      * Disconnects from providers without active subscribers.
      */
     private async _handleDisconnects() {
-        this._providers.forEach((provider) => {
+        for await (const [, provider] of this._providers) {
             if (provider.subscriptionIds().size > 0) {
                 return;
             }
-            provider.disconnect();
-        });
+            await provider.disconnect();
+        }
     }
 
     /**
      * Subscribes to providers based on newly added subscriptions in the subscription manager.
      */
     private async _handleSubscribes() {
-        this._subscriptions.forEach((subscription) => {
+        for await (const [, subscription] of this._subscriptions) {
             const provider = this._providers.get(subscription.provider);
             assert(provider);
             if (provider.subscribedTo(subscription.id)) {
                 return;
             }
-            provider.subscribe(subscription);
-        });
+            await provider.subscribe(subscription);
+        }
     }
 
     /**
@@ -168,15 +168,12 @@ export class SubscriptionManager {
      * by the subscription manager.
      */
     private async _handleUnsubscribes() {
-        this._providers.forEach((provider) => {
+        for (const [, provider] of this._providers) {
             const subscriptionIds = provider.subscriptionIds();
-            subscriptionIds.forEach((subscriptionId) => {
-                if (this._subscriptions.has(subscriptionId)) {
-                    return;
-                }
-                provider.unsubscribe(subscriptionId);
-            });
-        });
+            for await (const [subscriptionId] of subscriptionIds) {
+                await provider.unsubscribe(subscriptionId);
+            }
+        }
     }
 
     /**

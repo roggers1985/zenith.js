@@ -1,3 +1,6 @@
+/**
+ * An error thrown when an assertion has failed.
+ */
 export class AssertionError extends Error {}
 
 /**

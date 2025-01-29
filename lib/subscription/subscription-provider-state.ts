@@ -1,9 +1,10 @@
-import { assert } from '../utils/assert';
-import type { Subscription } from './subscription';
+import { CountMap } from 'lib/utils/count-map';
+import type { Subscription, Topic } from './subscription';
 
 export class SubscriptionProviderState {
     private readonly _subscriptionsById = new Map<string, Subscription>();
     private readonly _subscriptionIdsByPair = new Map<string, string[]>();
+    private readonly _subscriptionTopicCount = new CountMap();
 
     get hasSubscriptions() {
         return this._subscriptionsById.size > 0;
@@ -15,6 +16,10 @@ export class SubscriptionProviderState {
 
     hasSubscriptionsForPair(pair: string) {
         return this._subscriptionIdsByPair.has(pair);
+    }
+
+    hasSubscriptionsForTopic(topic: Topic) {
+        return this._subscriptionTopicCount.get(topic) > 0;
     }
 
     subscriptionsForPair(pair: string) {
@@ -34,6 +39,7 @@ export class SubscriptionProviderState {
 
         this._subscriptionsById.set(subscription.id, subscription);
         this._subscriptionIdsByPair.set(subscription.pair, ids);
+        this._subscriptionTopicCount.increment(subscription.topic);
     }
 
     removeSubscription(subscriptionId: string) {
@@ -44,6 +50,7 @@ export class SubscriptionProviderState {
         const ids = this._subscriptionIdsByPair.get(subscription.pair) ?? [];
         const isLast = ids.length === 1;
         this._subscriptionsById.delete(subscriptionId);
+        this._subscriptionTopicCount.decrement(subscriptionId);
         if (isLast) {
             this._subscriptionIdsByPair.delete(subscription.pair);
             return;

@@ -10,7 +10,9 @@ const logger = pino({
 
 async function run() {
     logger.info('starting background worker');
+
     const manager = new SubscriptionManager({ logger });
+
     manager.addProvider(new BinanceProvider({ logger }));
     manager.subscribe({
         id: 'ticker_btcusdt',
@@ -21,6 +23,7 @@ async function run() {
     manager.onMessage((message) =>
         logger.info(`received message ${JSON.stringify(message, null, 2)}`)
     );
+
     await manager.start();
 }
 

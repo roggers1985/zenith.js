@@ -7,6 +7,7 @@ import type {
 import { SubscriptionProviderState } from '../subscription-provider-state';
 import type { Logger } from 'lib/common/types';
 import { isBinanceClientTickerArrMessage } from 'lib/client/binance/message';
+import { sleep } from 'bun';
 
 /**
  * An adapter for using Binance as a data stream provider.
@@ -40,10 +41,13 @@ export class BinanceProvider implements SubscriptionProvider {
      *
      * @param onMessage A callback to process the subscription message.
      */
-    connect(onMessage: (message: SubscriptionMessage) => void): void {
+    async connect(
+        onMessage: (message: SubscriptionMessage) => void
+    ): Promise<void> {
         this._logger.info('binance provider connecting');
-        this._client.onDisconnect(this._state.clear);
-        this._client.connect();
+        this._client.onDisconnect(() => {
+            this._state.clear();
+        });
         this._client.onMessage((message) => {
             // We currently only support "all ticker" subscriptins.
             if (!isBinanceClientTickerArrMessage(message)) {
@@ -66,6 +70,8 @@ export class BinanceProvider implements SubscriptionProvider {
                         });
                 });
         });
+
+        await this._client.connect();
     }
 
     /**
@@ -82,14 +88,10 @@ export class BinanceProvider implements SubscriptionProvider {
      * @param subscription A subscription to a data stream to subscribe to.
      */
     subscribe(subscription: Subscription): void {
-        if (!this._client.connected) {
-            return;
-        }
         this._logger.info(
             `binance provider subscribing to subscription with id ${subscription.id}`
         );
         this._state.addSubscription(subscription);
-        this._client.subscribeToAllTickers();
     }
 
     /**
@@ -112,9 +114,5 @@ export class BinanceProvider implements SubscriptionProvider {
             `binance provider unsubscribing from subscription with id ${subscriptionId}`
         );
         this._state.removeSubscription(subscriptionId);
-        if (this._state.hasSubscriptions) {
-            return;
-        }
-        this._client.unsubscribeFromAllTickers();
     }
 }
